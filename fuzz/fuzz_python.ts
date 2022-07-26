@@ -1,32 +1,19 @@
-import * as fb from "bex/fb";
-import * as body from "bex/body";
-import * as python from "bex/loader/python";
-import * as mutators from "bex/mutator";
-import * as coverage from "bex/internal/coverage";
+import { Fuzzer, FuzzTarget } from "fuzzbuzz";
+import { String } from "fuzzbuzz/generator";
+import * as python from "fuzzbuzz/lang/python";
 
-fb.init();
-const rng = fb.DefaultRNG();
+const contrived = python.importModule("contrived");
 
-const gen = new fb.Generator("fuzztarget input", rng);
-gen
-	.addField(new fb.ByteArray("data", 4192, rng))
-	.addMutator(new mutators.MutatorInsertUTF8Char(rng, 4192, 0, 128))
-	.addMutator(new mutators.MutatorDeleteUTF8Char(rng));
+export function FuzzContrived(f: Fuzzer) {
 
-gen.addSensor(new fb.Sensor8BitCounter("8bit", coverage as fb.CoverageModule));
+  const body = new String("body");
+  body.setMaxLength(4096);
 
-const mod = python.importModule("contrived");
+  const target = new FuzzTarget((body: string): void => {
 
-body.Fuzzer(
-	"test",
-	gen,
-	(_input: fb.Generator) => {
-		mod.testcontrived(_input.getField("data").value);
-	},
-	rng,
-	"",
-	"",
-	"",
-	1,
-	false
-);
+    contrived.testcontrived(body);
+
+  }, body);
+
+  f.addFuzzTarget(target);
+}
